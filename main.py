@@ -19,16 +19,16 @@ async def get_daily_change_by_figi(client: ti.AsyncClient, figi: str):
     curr_close = curr_candle.c
 
     change = (curr_close - prev_close) * 100 / prev_close
-    return round(change, 2)
+    return figi, round(change, 2)
 
 
 async def main():
     client = ti.AsyncClient(TOKEN_SANDBOX, use_sandbox=True)
     etfs_data = await client.get_market_etfs()
     etfs_figis = {etf_data.figi: etf_data for etf_data in etfs_data.payload.instruments}
-    etfs_daily_change = [(figi, await get_daily_change_by_figi(client, figi)) for figi in etfs_figis]
 
-    res = sorted(etfs_daily_change, key=lambda ec: ec[1])
+    res = await asyncio.gather(*[get_daily_change_by_figi(client, figi) for figi in etfs_figis])
+    res = sorted(res, key=lambda ec: ec[1])
 
     for i in res:
         figi = i[0]
