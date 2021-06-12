@@ -1,41 +1,25 @@
 import asyncio
-import datetime
 
 import tinvest as ti
+
+from etfs import get_etfs_daily_change
+from portfolio import get_operations
 
 TOKEN_SANDBOX = ''
 TOKEN_LIVE = ''
 
+broker_account_id = ''
+iis_account_id = ''
 
-async def get_daily_change_by_figi(client: ti.AsyncClient, figi: str):
-    today = datetime.datetime.today()
-    yesterday = today - datetime.timedelta(days=2)
 
-    res = await client.get_market_candles(figi, yesterday, today, ti.CandleResolution.day)
-
-    prev_candle = res.payload.candles[0]
-    curr_candle = res.payload.candles[1]
-    prev_close = prev_candle.c
-    curr_close = curr_candle.c
-
-    change = (curr_close - prev_close) * 100 / prev_close
-    return figi, round(change, 2)
+def init_async_client(sandbox=True) -> ti.AsyncClient:
+    token = TOKEN_SANDBOX if sandbox else TOKEN_LIVE
+    return ti.AsyncClient(token, use_sandbox=sandbox)
 
 
 async def main():
-    client = ti.AsyncClient(TOKEN_SANDBOX, use_sandbox=True)
-    etfs_data = await client.get_market_etfs()
-    etfs_figis = {etf_data.figi: etf_data for etf_data in etfs_data.payload.instruments}
-
-    res = await asyncio.gather(*[get_daily_change_by_figi(client, figi) for figi in etfs_figis])
-    res = sorted(res, key=lambda ec: ec[1])
-
-    for i in res:
-        figi = i[0]
-        change = i[1]
-        etf_data = etfs_figis[figi]
-        print(etf_data.ticker, etf_data.name, change)
-
+    client = init_async_client(sandbox=False)
+    await get_operations(client, iis_account_id)
     await client.close()
 
 
