@@ -4,6 +4,13 @@ import datetime
 import tinvest as ti
 
 
+async def get_etfs_list(client: ti.AsyncClient):
+    etfs_data = await client.get_market_etfs()
+
+    for e in etfs_data.payload.instruments:
+        print(e)
+
+
 async def get_etfs_daily_change(client: ti.AsyncClient):
     etfs_data = await client.get_market_etfs()
     etfs_figis = {etf_data.figi: etf_data for etf_data in etfs_data.payload.instruments}
